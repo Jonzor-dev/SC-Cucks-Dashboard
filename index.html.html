@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supercoach League Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #1c2333;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --green: #00c46a;
+  --green-dim: rgba(0,196,106,0.12);
+  --gold: #f0c040;
+  --gold-dim: rgba(240,192,64,0.12);
+  --red: #ff5555;
+  --blue: #58a6ff;
+  --text: #e6edf3;
+  --muted: #7d8590;
+  --radius: 12px;
+  --font-head: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-semi: 'Barlow Semi Condensed', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  padding: 0;
+}
+
+.page-bg {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,196,106,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 90% 80%, rgba(88,166,255,0.05) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+.page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* HEADER */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border2);
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+  width: 48px; height: 48px;
+  background: var(--green);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-size: 20px; font-weight: 800;
+  color: #000; letter-spacing: 1px;
+}
+.page-title { font-family: var(--font-head); font-size: 32px; font-weight: 800; letter-spacing: 1px; line-height: 1; }
+.page-subtitle { font-size: 13px; color: var(--muted); margin-top: 3px; font-family: var(--font-semi); }
+.season-tag {
+  font-family: var(--font-semi); font-size: 12px; font-weight: 600;
+  color: var(--green); background: var(--green-dim);
+  border: 1px solid rgba(0,196,106,0.25);
+  border-radius: 20px; padding: 5px 14px; letter-spacing: 0.05em;
+}
+
+/* UPDATE PANEL */
+.update-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.update-panel h3 { font-family: var(--font-head); font-size: 14px; font-weight: 700; letter-spacing: 1px; color: var(--green); text-transform: uppercase; margin-bottom: 8px; }
+.update-fields { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; align-items: flex-end; }
+.uf { display: flex; flex-direction: column; gap: 4px; }
+.uf label { font-size: 11px; color: var(--muted); font-family: var(--font-semi); letter-spacing: 0.05em; text-transform: uppercase; }
+.uf input, .uf select {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 7px; padding: 7px 10px;
+  color: var(--text); font-family: var(--font-semi); font-size: 13px;
+  outline: none; min-width: 120px;
+}
+.uf input:focus, .uf select:focus { border-color: var(--green); }
+.uf input { min-width: 160px; }
+.btn {
+  padding: 8px 18px;
+  background: var(--green); color: #000;
+  font-family: var(--font-head); font-size: 15px; font-weight: 700; letter-spacing: 1px;
+  border: none; border-radius: 7px; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  align-self: flex-end; white-space: nowrap;
+}
+.btn:hover { opacity: 0.88; }
+.btn:active { transform: scale(0.97); }
+.btn-ghost {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border2); padding: 8px 14px;
+}
+.btn-ghost:hover { background: var(--bg3); color: var(--text); opacity: 1; }
+
+/* TEAM DATA EDITOR */
+.team-editor { width: 100%; margin-top: 1rem; display: none; }
+.team-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;
+  max-height: 320px; overflow-y: auto; padding-right: 4px;
+}
+.team-row { display: flex; align-items: center; gap: 8px; }
+.team-row .team-lbl { font-size: 12px; color: var(--muted); min-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-semi); }
+.team-row input { width: 80px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); font-size: 13px; font-family: var(--font-semi); outline: none; }
+.team-row input:focus { border-color: var(--green); }
+
+/* GRID LAYOUT */
+.tiles { display: grid; gap: 1.25rem; grid-template-columns: 1fr 1fr; }
+.tile-wide { grid-column: 1 / -1; }
+
+/* TILE BASE */
+.tile {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  animation: fadeUp 0.4s ease both;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.tile:nth-child(1) { animation-delay: 0.05s; }
+.tile:nth-child(2) { animation-delay: 0.1s; }
+.tile:nth-child(3) { animation-delay: 0.15s; }
+.tile:nth-child(4) { animation-delay: 0.2s; }
+.tile:nth-child(5) { animation-delay: 0.25s; }
+
+.tile-label {
+  font-family: var(--font-head); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 4px;
+}
+.tile-title {
+  font-family: var(--font-head); font-size: 20px; font-weight: 800;
+  letter-spacing: 0.5px; color: var(--text); margin-bottom: 1rem;
+  line-height: 1.1;
+}
+
+/* TILE 1 — CHART */
+.chart-wrap { position: relative; height: 320px; }
+
+/* TILE 2 — PODIUM */
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding: 0.5rem 0 0; }
+.podium-entry {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; max-width: 160px;
+}
+.podium-team {
+  font-family: var(--font-semi); font-size: 13px; font-weight: 600;
+  text-align: center; margin-bottom: 6px; line-height: 1.3;
+  color: var(--text);
+}
+.podium-coach { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+.podium-pts {
+  font-family: var(--font-head); font-size: 22px; font-weight: 800;
+  margin-bottom: 6px;
+}
+.podium-block {
+  width: 100%; border-radius: 8px 8px 0 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-weight: 800; font-size: 28px;
+}
+.podium-1 .podium-block { height: 90px; background: linear-gradient(180deg, rgba(240,192,64,0.25), rgba(240,192,64,0.1)); border: 1px solid rgba(240,192,64,0.4); color: var(--gold); }
+.podium-2 .podium-block { height: 65px; background: linear-gradient(180deg, rgba(192,192,192,0.2), rgba(192,192,192,0.07)); border: 1px solid rgba(192,192,192,0.3); color: #c0c0c0; }
+.podium-3 .podium-block { height: 48px; background: linear-gradient(180deg, rgba(205,127,50,0.2), rgba(205,127,50,0.07)); border: 1px solid rgba(205,127,50,0.3); color: #cd7f32; }
+.podium-1 .podium-pts { color: var(--gold); }
+.podium-2 .podium-pts { color: #c0c0c0; }
+.podium-3 .podium-pts { color: #cd7f32; }
+
+/* TILE 3 — HIGH SCORE */
+.high-score-wrap { display: flex; flex-direction: column; gap: 14px; }
+.hs-card {
+  background: var(--bg3); border-radius: 10px; border: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hs-label { font-size: 11px; color: var(--muted); font-family: var(--font-semi); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+.hs-team { font-family: var(--font-semi); font-size: 15px; font-weight: 600; }
+.hs-round { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.hs-score { font-family: var(--font-head); font-size: 36px; font-weight: 800; color: var(--green); line-height: 1; }
+
+/* TILE 4 — BIG GAME HUNTER */
+.bgh-list { display: flex; flex-direction: column; gap: 0; }
+.bgh-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.bgh-row:last-child { border-bottom: none; }
+.bgh-name { font-family: var(--font-semi); font-size: 14px; font-weight: 500; }
+.bgh-trophies { display: flex; gap: 5px; align-items: center; }
+.trophy-icon { font-size: 18px; }
+.bgh-count { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: var(--gold); margin-left: 6px; }
+.bgh-editor { margin-top: 1rem; }
+.bgh-add { display: flex; gap: 8px; margin-bottom: 8px; }
+.bgh-add input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px; padding: 7px 10px; color: var(--text); font-family: var(--font-semi); font-size: 13px; outline: none; }
+.bgh-add input:focus { border-color: var(--gold); }
+.bgh-add .btn { background: var(--gold); }
+.bgh-empty { font-size: 13px; color: var(--muted); font-style: italic; padding: 0.5rem 0; }
+
+/* TILE 5 — KIMBO SLICED */
+.kimbo-list { display: flex; flex-direction: column; gap: 0; }
+.kimbo-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.kimbo-row:last-child { border-bottom: none; }
+.kimbo-team { font-family: var(--font-semi); font-size: 14px; font-weight: 500; }
+.kimbo-round {
+  font-family: var(--font-head); font-size: 13px; font-weight: 600;
+  color: var(--red); background: rgba(255,85,85,0.1);
+  border: 1px solid rgba(255,85,85,0.2);
+  border-radius: 20px; padding: 3px 10px;
+}
+.kimbo-empty { font-size: 13px; color: var(--muted); font-style: italic; padding: 0.5rem 0; }
+.kimbo-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,85,85,0.08); border: 1px solid rgba(255,85,85,0.18);
+  border-radius: 8px; padding: 6px 12px; margin-bottom: 1rem;
+  font-size: 13px; color: var(--red); font-family: var(--font-semi);
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* RESPONSIVE */
+@media (max-width: 700px) {
+  .tiles { grid-template-columns: 1fr; }
+  .tile-wide { grid-column: 1; }
+  .podium { gap: 6px; }
+}
+</style>
+</head>
+<body>
+<div class="page-bg"></div>
+<div class="page">
+
+  <div class="page-header">
+    <div class="header-left">
+      <div class="logo">SC</div>
+      <div>
+        <div class="page-title">League Dashboard</div>
+        <div class="page-subtitle">NRL Supercoach 2026 · 16 Teams</div>
+      </div>
+    </div>
+    <span class="season-tag" id="current-round-badge">Round 1</span>
+  </div>
+
+  <!-- UPDATE PANEL -->
+  <div class="update-panel">
+    <div style="flex:1; min-width: 260px;">
+      <h3>Add Round Data</h3>
+      <div class="update-fields">
+        <div class="uf">
+          <label>Round</label>
+          <select id="round-select"></select>
+        </div>
+        <button class="btn btn-ghost" onclick="toggleEditor()">Enter Scores ▾</button>
+        <button class="btn" onclick="saveRound()">Save Round</button>
+      </div>
+      <div class="team-editor" id="team-editor">
+        <div class="team-grid" id="score-inputs"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tiles">
+
+    <!-- TILE 1: CUMULATIVE POINTS CHART -->
+    <div class="tile tile-wide">
+      <div class="tile-title">League Position by Round</div>
+      <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
+    </div>
+
+    <!-- TILE 2: TOP 3 PODIUM -->
+    <div class="tile">
+      <div class="tile-title">Current Top 3</div>
+      <div class="podium" id="podium"></div>
+    </div>
+
+    <!-- TILE 3: HIGH SCORES -->
+    <div class="tile">
+      <div class="tile-title">Record Scores</div>
+      <div class="high-score-wrap" id="high-scores"></div>
+    </div>
+
+    <!-- TILE 4: BIG GAME HUNTER -->
+    <div class="tile">
+      <div class="tile-title">🏆 Big Game Hunter Trophies</div>
+      <div class="bgh-list" id="bgh-list"></div>
+    </div>
+
+    <!-- TILE 5: KIMBO SLICED -->
+    <div class="tile">
+      <div class="tile-title">🔪 Kimbo Sliced</div>
+      <div class="kimbo-badge">Sliced by: Black Cat Energy (Kimberly)</div>
+      <div class="kimbo-list" id="kimbo-list"></div>
+      <div class="bgh-editor" style="margin-top:1rem;">
+        <div class="bgh-add">
+          <input type="text" id="kimbo-team" placeholder="Team name..." />
+          <input type="number" id="kimbo-round" placeholder="Round" min="1" style="max-width:80px;" />
+          <button class="btn" style="background:var(--red); color:#fff;" onclick="addKimbo()">Add</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const TEAMS = [
+  { name: "Adolf Fitler",       coach: "Jack" },
+  { name: "Sheenzyakasini",     coach: "Thomas" },
+  { name: "Thunderlips",        coach: "Jack" },
+  { name: "Lads",               coach: "Nick" },
+  { name: "Sasagi Biscuits",    coach: "Jon" },
+  { name: "Gus Vision™",        coach: "Lachlan" },
+  { name: "Rackasini",          coach: "Jack" },
+  { name: "Screaming Eagles",   coach: "Matt" },
+  { name: "HRB 2025",           coach: "Michael" },
+  { name: "Big Hits No Lube",   coach: "Richmond" },
+  { name: "Finchy's fiddlers",  coach: "Will" },
+  { name: "JerryHattrick",      coach: "Jeremy" },
+  { name: "It's gonna be MAY",  coach: "Justin" },
+  { name: "Sin Bin Laden",      coach: "Curtis" },
+  { name: "Black Cat Energy",   coach: "Kimberly" },
+  { name: "Motown Maggotz",     coach: "Andrew" },
+];
+
+// Round scores: roundScores[round][teamIndex] = score that round
+let roundScores = {
+  1: [1409, 1391, 1377, 1360, 1330, 1323, 1317, 1220, 1347, 1315, 1284, 1203, 1181, 1169, 1166, 1051],
+  2: [1289, 1262, 1211, 1152, 1321, 1254, 1288, 1258, 1337, 1245, 1125, 1233, 1229, 1217, 1144, 1143],
+  3: [1131, 1128, 1277, 1178, 1345, 1050, 1104, 1220, 1215, 1116, 1154, 1225, 1131, 1241, 1141, 1183],
+  4: [1136, 1198, 1172, 1186, 1340, 1195, 1201, 1253, 1190, 1367, 1365, 1099, 1218, 1362, 1214, 1207],
+  5: [1332, 1127, 1205, 1010, 1294, 1192, 1121, 1171, 1091, 1126, 1099, 1195, 1309, 1207, 1256, 1138]
+};
+
+// Head-to-head matchups per round: [teamA, teamB] — winner is whoever scored more that round
+const matchups = {
+  2: [
+    ["Finchy's fiddlers", "Black Cat Energy"],
+    ["Sheenzyakasini", "Lads"],
+    ["Thunderlips", "Gus Vision™"],
+    ["JerryHattrick", "It's gonna be MAY"],
+    ["Screaming Eagles", "Sin Bin Laden"],
+    ["Sasagi Biscuits", "Big Hits No Lube"],
+    ["Adolf Fitler", "Motown Maggotz"],
+    ["HRB 2025", "Rackasini"],
+  ],
+  3: [
+    ["Finchy's fiddlers", "Sheenzyakasini"],
+    ["Thunderlips", "Black Cat Energy"],
+    ["JerryHattrick", "Lads"],
+    ["Screaming Eagles", "Gus Vision™"],
+    ["Big Hits No Lube", "It's gonna be MAY"],
+    ["Adolf Fitler", "Sin Bin Laden"],
+    ["Sasagi Biscuits", "HRB 2025"],
+    ["Rackasini", "Motown Maggotz"],
+  ],
+  4: [
+    ["Finchy's fiddlers", "Thunderlips"],
+    ["JerryHattrick", "Sheenzyakasini"],
+    ["Screaming Eagles", "Black Cat Energy"],
+    ["Big Hits No Lube", "Lads"],
+    ["Adolf Fitler", "Gus Vision™"],
+    ["HRB 2025", "It's gonna be MAY"],
+    ["Rackasini", "Sin Bin Laden"],
+    ["Sasagi Biscuits", "Motown Maggotz"],
+  ],
+  5: [
+    ["Finchy's fiddlers", "JerryHattrick"],
+    ["Screaming Eagles", "Thunderlips"],
+    ["Big Hits No Lube", "Sheenzyakasini"],
+    ["Adolf Fitler", "Black Cat Energy"],
+    ["HRB 2025", "Lads"],
+    ["Rackasini", "Gus Vision™"],
+    ["Motown Maggotz", "It's gonna be MAY"],
+    ["Sasagi Biscuits", "Sin Bin Laden"],
+  ],
+};
+
+let kimboData = [{ team: "Finchy's fiddlers", round: 2 }]; // [{team, round}]
+let currentChart = null;
+
+// ── ROUND SELECT ──────────────────────────────────────────────────────────────
+function initRoundSelect() {
+  const sel = document.getElementById('round-select');
+  sel.innerHTML = '';
+  for (let r = 1; r <= 27; r++) {
+    const o = document.createElement('option');
+    o.value = r; o.textContent = `Round ${r}`;
+    if (r === maxRound() + 1 || (r === 1 && maxRound() === 0)) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function maxRound() {
+  const keys = Object.keys(roundScores).map(Number);
+  return keys.length ? Math.max(...keys) : 0;
+}
+
+// ── EDITOR ────────────────────────────────────────────────────────────────────
+function toggleEditor() {
+  const ed = document.getElementById('team-editor');
+  const isOpen = ed.style.display === 'block';
+  ed.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) buildScoreInputs();
+}
+
+function buildScoreInputs() {
+  const round = parseInt(document.getElementById('round-select').value);
+  const existing = roundScores[round] || [];
+  const grid = document.getElementById('score-inputs');
+  grid.innerHTML = TEAMS.map((t, i) => `
+    <div class="team-row">
+      <span class="team-lbl" title="${t.name}">${t.name}</span>
+      <input type="number" id="si-${i}" value="${existing[i] || ''}" placeholder="0" min="0" max="3000" />
+    </div>`).join('');
+}
+
+function saveRound() {
+  const round = parseInt(document.getElementById('round-select').value);
+  const scores = TEAMS.map((_, i) => {
+    const v = document.getElementById(`si-${i}`);
+    return v ? (parseInt(v.value) || 0) : 0;
+  });
+  if (scores.every(s => s === 0)) { alert('Please enter scores first.'); return; }
+  roundScores[round] = scores;
+  document.getElementById('team-editor').style.display = 'none';
+  renderAll();
+  initRoundSelect();
+}
+
+// ── CUMULATIVE DATA ───────────────────────────────────────────────────────────
+function getCumulativeData() {
+  const rounds = Object.keys(roundScores).map(Number).sort((a,b)=>a-b);
+  const cumulative = TEAMS.map(() => []);
+  rounds.forEach(r => {
+    TEAMS.forEach((_, i) => {
+      const prev = cumulative[i].length ? cumulative[i][cumulative[i].length - 1] : 0;
+      cumulative[i].push(prev + (roundScores[r][i] || 0));
+    });
+  });
+  return { rounds, cumulative };
+}
+
+// ── CHART COLORS ──────────────────────────────────────────────────────────────
+const PALETTE = [
+  '#00c46a','#58a6ff','#f0c040','#ff7b72','#d2a8ff',
+  '#ffa657','#79c0ff','#56d364','#ff9999','#e3b341',
+  '#a5f3fc','#f9a8d4','#bbf7d0','#fed7aa','#ddd6fe','#fecdd3'
+];
+
+// ── TILE 1 — CHART ────────────────────────────────────────────────────────────
+function renderChart() {
+  const { rounds, cumulative } = getCumulativeData();
+  const labels = rounds.map(r => `R${r}`);
+
+  // Calculate league position per team per round based on cumulative scores
+  const positionData = TEAMS.map(() => []);
+  rounds.forEach((r, rIdx) => {
+    const scores = TEAMS.map((_, i) => ({ i, score: cumulative[i][rIdx] }));
+    scores.sort((a, b) => b.score - a.score);
+    const rankMap = {};
+    scores.forEach((s, rank) => { rankMap[s.i] = rank + 1; });
+    TEAMS.forEach((_, i) => positionData[i].push(rankMap[i]));
+  });
+
+  const datasets = TEAMS.map((t, i) => ({
+    label: t.name,
+    data: positionData[i],
+    borderColor: PALETTE[i % PALETTE.length],
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    pointRadius: rounds.length === 1 ? 4 : 2,
+    pointHoverRadius: 5,
+    tension: 0.3,
+  }));
+
+  if (currentChart) currentChart.destroy();
+
+  const ctx = document.getElementById('chart-cumulative').getContext('2d');
+  currentChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#7d8590', font: { family: 'Barlow Semi Condensed', size: 11 },
+            boxWidth: 10, boxHeight: 10, padding: 12,
+            usePointStyle: true, pointStyle: 'circle'
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1c2333',
+          borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#7d8590',
+          titleFont: { family: 'Barlow Condensed', size: 13, weight: '700' },
+          bodyFont: { family: 'Barlow Semi Condensed', size: 12 },
+          padding: 10, cornerRadius: 8,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: #${ctx.parsed.y}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#7d8590', font: { family: 'Barlow Condensed', size: 12, weight: '600' } },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        },
+        y: {
+          reverse: true,
+          min: 1,
+          max: 16,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#7d8590',
+            font: { family: 'Barlow Semi Condensed', size: 11 },
+            stepSize: 1,
+            callback: v => `#${v}`
+          },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        }
+      }
+    }
+  });
+}
+
+// ── TILE 2 — PODIUM ───────────────────────────────────────────────────────────
+function renderPodium() {
+  const { cumulative } = getCumulativeData();
+  const mr = maxRound();
+  const totals = TEAMS.map((t, i) => ({
+    name: t.name, coach: t.coach,
+    pts: cumulative[i] ? cumulative[i][cumulative[i].length - 1] : 0
+  }));
+  totals.sort((a, b) => b.pts - a.pts);
+  const top3 = totals.slice(0, 3);
+
+  // display order: 2nd, 1st, 3rd
+  const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const classes = top3[1] && top3[0] ? ['podium-2', 'podium-1', 'podium-3'] : ['podium-1'];
+  const medals = ['2', '1', '3'];
+
+  document.getElementById('podium').innerHTML = order.map((t, idx) => {
+    const cls = classes[idx];
+    const medal = medals[idx];
+    return `<div class="podium-entry ${cls}">
+      <div class="podium-team">${t.name}</div>
+      <div class="podium-coach">${t.coach}</div>
+      <div class="podium-pts">${t.pts.toLocaleString()}</div>
+      <div class="podium-block">${medal}</div>
+    </div>`;
+  }).join('');
+
+  const badge = document.getElementById('current-round-badge');
+  badge.textContent = `Round ${mr}`;
+}
+
+// ── TILE 3 — HIGH SCORES ──────────────────────────────────────────────────────
+function renderHighScores() {
+  let highest = { score: 0, team: '', round: 0 };
+  let highestCoach = { score: 0, team: '', coach: '', round: 0 };
+
+  Object.entries(roundScores).forEach(([r, scores]) => {
+    scores.forEach((s, i) => {
+      if (s > highest.score) {
+        highest = { score: s, team: TEAMS[i].name, coach: TEAMS[i].coach, round: parseInt(r) };
+      }
+    });
+  });
+  highestCoach = highest;
+
+  document.getElementById('high-scores').innerHTML = `
+    <div class="hs-card">
+      <div>
+        <div class="hs-label">Highest Single Round Score</div>
+        <div class="hs-team">${highestCoach.team}</div>
+        <div class="hs-round">Round ${highestCoach.round} · ${highestCoach.coach}</div>
+      </div>
+      <div class="hs-score">${highestCoach.score.toLocaleString()}</div>
+    </div>`;
+}
+
+// ── TILE 4 — BIG GAME HUNTER (AUTO) ──────────────────────────────────────────
+function calcBGH() {
+  // For each round R (starting R2), get top 3 from end of R-1, then award trophy
+  // to anyone who beat a top-3 team in round R
+  const trophies = {}; // teamName -> count
+  TEAMS.forEach(t => trophies[t.name] = 0);
+
+  const rounds = Object.keys(roundScores).map(Number).sort((a,b)=>a-b);
+
+  rounds.forEach(r => {
+    if (r < 4) return; // trophies commence from round 4
+    if (!matchups[r]) return;
+
+    // Top 3 from actual standings at end of previous round (by league points / W-L record)
+    const top3ByRound = {
+      1: ["Adolf Fitler", "Sheenzyakasini", "Thunderlips"],
+      2: ["Adolf Fitler", "Sheenzyakasini", "Sasagi Biscuits"],
+      3: ["Sasagi Biscuits", "Screaming Eagles", "Thunderlips"],
+      4: ["Sasagi Biscuits", "Screaming Eagles", "Sheenzyakasini"],
+      5: ["Sasagi Biscuits", "Screaming Eagles", "Sheenzyakasini"],
+    };
+    const top3names = new Set(top3ByRound[r - 1] || []);
+
+    // Check each matchup this round
+    matchups[r].forEach(([teamA, teamB]) => {
+      const iA = TEAMS.findIndex(t => t.name === teamA);
+      const iB = TEAMS.findIndex(t => t.name === teamB);
+      if (iA < 0 || iB < 0) return;
+      const sA = roundScores[r][iA] || 0;
+      const sB = roundScores[r][iB] || 0;
+      if (sA > sB && top3names.has(teamB)) trophies[teamA]++;
+      if (sB > sA && top3names.has(teamA)) trophies[teamB]++;
+    });
+  });
+
+  return trophies;
+}
+
+function renderBGH() {
+  const list = document.getElementById('bgh-list');
+  const trophies = calcBGH();
+  const entries = Object.entries(trophies).filter(([,c]) => c > 0).sort((a,b) => b[1]-a[1]);
+
+  if (!entries.length) {
+    list.innerHTML = '<div class="bgh-empty">No trophies awarded yet.</div>';
+    return;
+  }
+  list.innerHTML = entries.map(([name, count]) => {
+    const icons = '🏆'.repeat(Math.min(count, 5));
+    return `<div class="bgh-row">
+      <span class="bgh-name">${name}</span>
+      <div class="bgh-trophies">
+        <span class="trophy-icon">${icons}</span>
+        <span class="bgh-count">×${count}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addBGH() {}
+function removeBGH() {}
+
+// ── TILE 5 — KIMBO SLICED ─────────────────────────────────────────────────────
+function renderKimbo() {
+  const list = document.getElementById('kimbo-list');
+  if (!kimboData.length) {
+    list.innerHTML = '<div class="kimbo-empty">No victims yet. Kim is coming. 🔪</div>';
+    return;
+  }
+  list.innerHTML = kimboData.map(d => `
+    <div class="kimbo-row">
+      <span class="kimbo-team">${d.team}</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="kimbo-round">Round ${d.round}</span>
+        <button onclick="removeKimbo('${d.team}',${d.round})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;" title="Remove">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function addKimbo() {
+  const team = document.getElementById('kimbo-team').value.trim();
+  const round = parseInt(document.getElementById('kimbo-round').value);
+  if (!team || !round) return;
+  if (!kimboData.find(d => d.team === team && d.round === round))
+    kimboData.push({ team, round });
+  kimboData.sort((a, b) => a.round - b.round);
+  document.getElementById('kimbo-team').value = '';
+  document.getElementById('kimbo-round').value = '';
+  renderKimbo();
+}
+
+function removeKimbo(team, round) {
+  kimboData = kimboData.filter(d => !(d.team === team && d.round === round));
+  renderKimbo();
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderChart();
+  renderPodium();
+  renderHighScores();
+  renderBGH();
+  renderKimbo();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+initRoundSelect();
+renderAll();
+</script>
+</body>
+</html>
